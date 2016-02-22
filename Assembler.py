@@ -3,8 +3,6 @@ Title: Assembler
 Authors: Denny Hood, Harold Smith
 Class: CS 271
 Description:The main program of the assembler.
-
-NOTE:missing address labels stored in memory
 """
 
 import PM_A_instruction_to_machine_language as A_inst
@@ -60,19 +58,19 @@ def remove_comment_from_line(fileIn):
         line = line.strip() #remove space padding before and after instruction
         if line != "": #make sure a line has something on it before adding to list
             if line[0] != '/':
-                tmp_list = line.partition(' ')
-                tmp_line = tmp_list[0]
+                tmp_list = line.partition(' ') #split line into list of words
+                tmp_line = tmp_list[0] #grab first "word" assembly code
                 if tmp_line[len(tmp_line)-1] == '\t': #check to see is a tab was left
                     tmp_line = tmp_line[:len(tmp_line)-1]
-                line_list.append(tmp_line)
+                line_list.append(tmp_line) #at this point tmp_line is an a instruction or c instruction
     return line_list
 
 def add_labels_to_dictionary(command_list, symbol_dict):
     for line in command_list:
-        if line[0] == '(':
-            ProgCount = command_list.index(line)
-            symbol_dict[line[1:len(line)-1]]=ProgCount
-            command_list.remove(line)
+        if line[0] == '(': #we have a label
+            ProgCount = command_list.index(line) #get location in list of label
+            symbol_dict[line[1:len(line)-1]]=ProgCount #save label without '(' and ')' in symbol table
+            command_list.remove(line) #remove line from command file
 
 def main():
     machine_code_list = [] #a list that will contain lines of machine code in order
@@ -80,9 +78,9 @@ def main():
     #read in file ignoring comments
     line_list = remove_comment_from_line(fileObj) #line list should just be a list of address labels or commands
     fileObj.close()
-    #we now have a list composed of lines of Hack assembly without comments after instruction
+    #we now have a list composed of lines of Hack assembly without comments after instruction but we need to add labels to dictionary
     add_labels_to_dictionary(line_list, A_inst.user_symbol_table)
-    
+    #now we can convert list of a instructions or c instructions to machine code
     for instruction in line_list:
         output = parse_line(instruction)
         if output != "": #ignore lines with comments or address label declarations
