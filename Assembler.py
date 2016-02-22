@@ -26,19 +26,19 @@ def open_file():
 def parse_line(lineIn):
     #determine if lineIn is an address label, a instruction, c instruction or a comment
     #return value is 16bit machine code
-    #NOTE: each line must be nonempty
-    if lineIn[0] == '(': #we have an address label
-        #print("label")
-        return ""
-    elif lineIn[0] == '@': #we have an a instruction
-        #print("ainst", A_inst.generate_A_instruction(lineIn[1:])) #ignore @ symbol
-        return A_inst.generate_A_instruction(lineIn[1:])
-    elif lineIn[0] == '/' and lineIn[1] == '/': #we have a comment
-        #print("comment")
-        return ""
-    else: # we may have a c instruction
-        #print("cinst", C_inst.generate_C_instruction(lineIn))
-        return C_inst.generate_C_instruction(lineIn)
+    if len(lineIn) > 0:#NOTE: each line must be nonempty
+        if lineIn[0] == '(': #we have an address label
+            #print("label")
+            return ""
+        elif lineIn[0] == '@': #we have an a instruction
+            #print("ainst", A_inst.generate_A_instruction(lineIn[1:])) #ignore @ symbol
+            return A_inst.generate_A_instruction(lineIn[1:])
+        elif lineIn[0] == '/' and lineIn[1] == '/': #we have a comment
+            #print("comment")
+            return ""
+        else: # we may have a c instruction
+            #print("cinst", C_inst.generate_C_instruction(lineIn))
+            return C_inst.generate_C_instruction(lineIn)
     
 def write_list_to_hack(listIn):
     outputFileName = input("enter output name withhout extension: ")
@@ -54,26 +54,36 @@ def write_list_to_hack(listIn):
         print("Error: could not write to ",outputFileName)
         return -1
 
-def remove_comment_from_line(instruction):
-	position = 0
-	for char in instruction:
-		if char == " " or char == '/': #instructions must be written without spaces or '/' symbols
-			break
-		else:
-			position+=1
-	return instruction[:position] #return a substring without any trailing comments just the instruction
+def remove_comment_from_line(fileIn):
+    line_list = []
+    for line in fileIn:
+        line = line.strip() #remove space padding before and after instruction
+        if line != "": #make sure a line has something on it before adding to list
+            if line[0] != '/':
+                tmp_list = line.partition(' ')
+                tmp_line = tmp_list[0]
+                if tmp_line[len(tmp_line)-1] == '\t': #check to see is a tab was left
+                    tmp_line = tmp_line[:len(tmp_line)-1]
+                line_list.append(tmp_line)
+    return line_list
+
+def add_labels_to_dictionary(command_list, symbol_dict):
+    for line in command_list:
+        if line[0] == '(':
+            ProgCount = command_list.index(line)
+            symbol_dict[line[1:len(line)-1]]=ProgCount
+            command_list.remove(line)
 
 def main():
     machine_code_list = [] #a list that will contain lines of machine code in order
     fileObj = open_file()
-    for line in fileObj:
-        lines = (line.strip() for line in fileObj) #remove space padding before and after instruction
-        lines = list(line for line in lines if line) #make sure a line has something on it before adding to list
+    #read in file ignoring comments
+    line_list = remove_comment_from_line(fileObj) #line list should just be a list of address labels or commands
     fileObj.close()
-
-    #we now have a list composed of lines of Hack assembly with possible comments after instruction
-    for instruction in lines:
-        instruction = remove_comment_from_line(instruction)
+    #we now have a list composed of lines of Hack assembly without comments after instruction
+    add_labels_to_dictionary(line_list, A_inst.user_symbol_table)
+    
+    for instruction in line_list:
         output = parse_line(instruction)
         if output != "": #ignore lines with comments or address label declarations
             machine_code_list.append(parse_line(instruction))
